@@ -10,7 +10,8 @@
 </div>
 
 ## Description
-What it does
+An reimplement of [Learning Continuous Image Representation with Local Implicit Image Function
+](https://arxiv.org/abs/2012.09161) using lightning and hydra.
 
 ## How to run
 Install dependencies
