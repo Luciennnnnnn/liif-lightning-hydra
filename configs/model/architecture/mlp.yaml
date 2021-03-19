@@ -1,0 +1,5 @@
+_target_: src.architectures.mlp.MLP
+
+inp_dim: 64
+hidden_list: [256, 256, 256, 256]
+out_dim: 3

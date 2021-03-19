@@ -1,0 +1,16 @@
+_target_: src.architectures.edsr.EDSR
+
+n_resblocks: 16
+n_feats: 64
+kernel_size: 3
+rgb_range: 1
+n_colors: 3
+
+upsampler:
+  scale: 2
+  n_feats: ${..n_feats}
+
+resblock:
+  n_feats: ${..n_feats}
+  kernel_size: ${..kernel_size}
+  res_scale: 1

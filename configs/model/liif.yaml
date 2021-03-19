@@ -1,0 +1,7 @@
+_target_: src.models.liif.LIIF
+
+defaults:
+ - architecture@encoder: edsr
+ - architecture@inr: mlp
+
+encoder.upsampler: null

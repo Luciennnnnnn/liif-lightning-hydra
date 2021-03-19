@@ -20,9 +20,11 @@ defaults:
 # read more here: https://hydra.cc/docs/next/tutorials/basic/running_your_app/working_directory
 work_dir: ${hydra:runtime.cwd}
 
+# results_dir: /gdata/luoxin/lightning-hydra-template
+results_dir: ${work_dir}
 
 # path to folder with data
-data_dir: ${work_dir}/data/
+data_dir: ${results_dir}/data/
 
 
 # use `python run.py debug=true` for easy debugging!
@@ -47,9 +49,9 @@ disable_lightning_logs: False
 hydra:
     # output paths for hydra logs
     run:
-        dir: logs/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+        dir: ${results_dir}/logs/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
     sweep:
-        dir: logs/multiruns/${now:%Y-%m-%d_%H-%M-%S}
+        dir: ${results_dir}/logs/multiruns/${now:%Y-%m-%d_%H-%M-%S}
         subdir: ${hydra.job.num}
 
     job:

@@ -32,19 +32,11 @@ class LIIF(pl.LightningModule):
         # it also allows to access params with 'self.hparams' attribute
         self.save_hyperparameters()
 
-        self.architecture = SimpleDenseNet(hparams=self.hparams)
-
         # loss function
-        self.criterion = torch.nn.CrossEntropyLoss()
-
-        # use separate metric instance for train, val and test step
-        # to ensure a proper reduction over the epoch
-        self.train_accuracy = Accuracy()
-        self.val_accuracy = Accuracy()
-        self.test_accuracy = Accuracy()
+        self.criterion = torch.nn.L1Loss()
         
-        self.encoder = encoder()
-        self.INR = xxx()
+        self.encoder = hydra.utils.instantiate(self.hparams.encoder)
+        self.INR = hydra.utils.instantiate(self.hparams.inr)
 
         self.metric_hist = {
             "train/loss": [],
