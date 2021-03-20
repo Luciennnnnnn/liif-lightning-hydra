@@ -8,7 +8,7 @@ from pytorch_lightning.metrics.classification import Accuracy
 from torch.optim import Optimizer
 
 from src.architectures.simple_dense_net import SimpleDenseNet
-
+from ..utils.functional import make_coord
 
 class LIIF(pl.LightningModule):
     """
@@ -35,15 +35,23 @@ class LIIF(pl.LightningModule):
         # loss function
         self.criterion = torch.nn.L1Loss()
         
-        self.encoder = hydra.utils.instantiate(self.hparams.encoder)
-        self.INR = hydra.utils.instantiate(self.hparams.inr)
+        self.encoder = hydra.utils.instantiate(self.hparams.encoder, _recursive_=False)
+
+        inr_in_dim = self.encoder.out_dim
+        if self.hparams.feat_unfold:
+            inr_in_dim *= 9
+        inr_in_dim += 2 # attach coord
+        if self.hparams.cell_decode:
+            inr_in_dim += 2
+
+        self.INR = hydra.utils.instantiate(self.hparams.inr, in_dim=inr_in_dim)
 
         self.metric_hist = {
             "train/loss": [],
             "val/loss": [],
         }
 
-    def look_up_feature(self, coordinate, feature):
+    def look_up_feature(self, coordinate, feature, feat_coord):
         """
         Args:
             coordinate (Tensor): N×Q×2
@@ -54,30 +62,30 @@ class LIIF(pl.LightningModule):
 
         # 对应位置的feature, 取空间上邻近的
         feature = F.grid_sample(
-                    feat, coord.flip(-1).unsqueeze(1), # N×1×Q×2
+                    feature, coordinate.flip(-1).unsqueeze(1), # N×1×Q×2
                     mode='nearest', align_corners=False)[:, :, 0, :].permute(0, 2, 1) # N×Q×C
 
         # 每个feature实际的坐标
         f_coordinate = F.grid_sample(
-            feat_coord, coord.flip(-1).unsqueeze(1),
+            feat_coord, coordinate.flip(-1).unsqueeze(1),
             mode='nearest', align_corners=False)[:, :, 0, :].permute(0, 2, 1) # N×Q×2
 
         return feature, f_coordinate
 
-    def forward(self, x) -> torch.Tensor:
+    def forward(self, x, coord, gt_size) -> torch.Tensor:
         feature = self.encoder(x) # N×C×H×W
 
         if self.hparams.feat_unfold:
-            feat = F.unfold(feat, 3, padding=1).view(
-                feat.shape[0], feat.shape[1] * 9, feat.shape[2], feat.shape[3])
+            feature = F.unfold(feature, 3, padding=1).view(
+                feature.shape[0], feature.shape[1] * 9, feature.shape[2], feature.shape[3])
 
         # field radius (global: [-1, 1])
-        rx = 2 / feat.shape[-2] / 2
-        ry = 2 / feat.shape[-1] / 2
+        rx = 2 / feature.shape[-2] / 2
+        ry = 2 / feature.shape[-1] / 2
 
-        feat_coord = make_coord(feat.shape[-2:], flatten=False).cuda() \
+        feat_coord = make_coord(feature.shape[-2:], flatten=False).cuda() \
             .permute(2, 0, 1) \
-            .unsqueeze(0).expand(feat.shape[0], 2, *feat.shape[-2:]) # N×2×H×W
+            .unsqueeze(0).expand(feature.shape[0], 2, *feature.shape[-2:]) # N×2×H×W
             
         if self.hparams.local_ensemble:
             vx_lst = [-1, 1]
@@ -96,12 +104,12 @@ class LIIF(pl.LightningModule):
                 coord_[:, :, 1] += vy * ry + eps_shift
                 coord_.clamp_(-1 + 1e-6, 1 - 1e-6)
 
-                q_feat, q_coord = look_up_feature(feature, coord_)
+                q_feat, q_coord = self.look_up_feature(coord_, feature, feat_coord)
                 
                 # 相对于feature位置的偏移量
                 relative_offset = coord - q_coord
-                relative_offset[:, :, 0] *= feat.shape[-2]
-                relative_offset[:, :, 1] *= feat.shape[-1]
+                relative_offset[:, :, 0] *= feature.shape[-2]
+                relative_offset[:, :, 1] *= feature.shape[-1]
 
                 area = torch.abs(relative_offset[:, :, 0] * relative_offset[:, :, 1])
 
@@ -110,8 +118,8 @@ class LIIF(pl.LightningModule):
                 if self.hparams.cell_decode:
                     cell = 2 / gt_size
 
-                    cell[:, :, 0] *= feat.shape[-2]
-                    cell[:, :, 1] *= feat.shape[-1]
+                    cell[:, :, 0] *= feature.shape[-2]
+                    cell[:, :, 1] *= feature.shape[-1]
                     inp = torch.cat([inp, cell], dim=-1)
 
                 bs, q = coord.shape[:2]
@@ -120,10 +128,7 @@ class LIIF(pl.LightningModule):
                 preds.append(pred)
                 areas.append(area + 1e-9)
 
-        # tot_area = torch.stack(areas).sum(dim=0)
-        tot_area = rx * ry * 4 # actually this is constant.
-        assert(tot_area == torch.stack(areas).sum(dim=0))
-
+        tot_area = torch.stack(areas).sum(dim=0)
         if self.hparams.local_ensemble:
             t = areas[0]; areas[0] = areas[3]; areas[3] = t
             t = areas[1]; areas[1] = areas[2]; areas[2] = t
@@ -134,8 +139,8 @@ class LIIF(pl.LightningModule):
         return ret
 
     def step(self, batch) -> Dict[str, torch.Tensor]:
-        x, coord, gt = batch['inp'], batch['coord'], batch['gt']
-        pred = self.forward(x)
+        x, coord, gt, gt_size = batch['inp'], batch['coord'], batch['gt'], batch['gt_size']
+        pred = self.forward(x, coord, gt_size)
         loss = self.criterion(pred, gt)
         return loss, pred, gt
 

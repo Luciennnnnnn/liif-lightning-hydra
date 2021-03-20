@@ -2,20 +2,20 @@ import os
 from enum import Enum
 from typing import Callable, Optional
 from PIL import Image
+
+import numpy as np
+
+import torch
 from torch.utils.data import Dataset
+
+from ..utils.transforms import ToCoordColorPair
 
 class ImplicitImageDataset(Dataset):
     """Example dataset class for loading images from folder."""
 
     def __init__(self, dataset: Dataset, sample_q = None):
-        self.transform = transform
-        self.target_transform = target_transform
         self.dataset = dataset
-        if self.sample_q is not None:
-            sample_lst = np.random.choice(
-                len(hr_coord), self.sample_q, replace=False)
-            hr_coord = hr_coord[sample_lst]
-            hr_rgb = hr_rgb[sample_lst]
+        self.sample_q = sample_q
 
     def __getitem__(self, idx):
         image = self.dataset[idx]
@@ -26,6 +26,12 @@ class ImplicitImageDataset(Dataset):
             lr = hr = image
 
         hr_coord, hr_rgb = ToCoordColorPair()(hr)
+        
+        if self.sample_q is not None:
+            sample_lst = np.random.choice(
+                len(hr_coord), self.sample_q, replace=False)
+            hr_coord = hr_coord[sample_lst]
+            hr_rgb = hr_rgb[sample_lst]
 
         gt_size = torch.ones_like(hr_coord)
         gt_size[:, 0] = hr.shape[-2]

@@ -1,26 +1,10 @@
+import torch
+from . import functional as F
 
 class ToCoordColorPair:
     """ Convert the image to coord-RGB pairs.
         img: Tensor, (3, H, W)
     """
-    
-    def make_coord(shape, ranges=None, flatten=True):
-        """ Make coordinates at grid centers.
-        """
-        coord_seqs = []
-        for i, n in enumerate(shape):
-            if ranges is None:
-                v0, v1 = -1, 1
-            else:
-                v0, v1 = ranges[i]
-            r = (v1 - v0) / (2 * n)
-            seq = v0 + r + (2 * r) * torch.arange(n).float()
-            coord_seqs.append(seq)
-        ret = torch.stack(torch.meshgrid(*coord_seqs), dim=-1)
-        if flatten:
-            ret = ret.view(-1, ret.shape[-1])
-        return ret
-
     def __call__(self, img):
         """
         Args:
@@ -28,9 +12,7 @@ class ToCoordColorPair:
         Returns:
             (coordinator, color): of size [W*H, 2], [W*H, 3]
         """
-        coord = make_coord(img.shape[-2:])
-        rgb = img.view(3, -1).permute(1, 0)
-        return coord, rgb
+        return F.toCoordColorPair(img)
 
     def __repr__(self):
         return self.__class__.__name__ + '()'
@@ -58,7 +40,7 @@ class RandomDFlip(torch.nn.Module):
             PIL Image or Tensor: Randomly flipped image.
         """
         if torch.rand(1) < self.p:
-            return img.transpose(-2, -1)
+            return F.dflip(img)
         return img
 
 

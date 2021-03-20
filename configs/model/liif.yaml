@@ -4,4 +4,9 @@ defaults:
  - architecture@encoder: edsr
  - architecture@inr: mlp
 
-encoder.upsampler: null
+encoder:
+  upsampler: null
+
+local_ensemble: true
+feat_unfold: true
+cell_decode: true

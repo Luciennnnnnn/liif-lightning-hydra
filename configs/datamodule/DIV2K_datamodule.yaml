@@ -1,6 +1,11 @@
-_target_: src.datamodules.mnist_datamodule.DIV2KDataModule
+_target_: src.datamodules.DIV2K_datamodule.DIV2KDataModule
 
-data_dir: ${data_dir}  # data_dir is specified in config.yaml
+data_dir: ${data_dir}/DIV2K  # data_dir is specified in config.yaml
 batch_size: 64
 num_workers: 0
 pin_memory: False
+
+inp_size: 48
+scale_range: [1, 4]
+
+sample_q: 2304 # 48 * 48

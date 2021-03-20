@@ -11,6 +11,7 @@ upsampler:
   n_feats: ${..n_feats}
 
 resblock:
+  _target_: src.architectures.modules.res_block.ResBlock
   n_feats: ${..n_feats}
   kernel_size: ${..kernel_size}
   res_scale: 1

@@ -6,9 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import hydra
+from omegaconf import DictConfig, OmegaConf
 
-from models import register
-from modules.conv import SpatialPreservedConv
+from .modules.conv import SpatialPreservedConv
 
 class EDSR(nn.Module):
     # Based on their modified version from: https://github.com/yinboc/liif
@@ -24,13 +24,12 @@ class EDSR(nn.Module):
 
     # n_resblocks: 16, n_feats: 64, res_scale: 1, kernel_size: 3, scale: 2, rgb_range: 1, n_colors: 3, no_upsampling: false
 
-    def __init__(self, hparams):
+    def __init__(self, *args, **kwargs):
         super(EDSR, self).__init__()
-        self.hparams = hparams
+        self.hparams = OmegaConf.create(kwargs)
         
-        n_resblocks = hparams.n_resblocks
-        n_feats = hparams.n_feats
-        scale = hparams.scale
+        n_resblocks = self.hparams.n_resblocks
+        n_feats = self.hparams.n_feats
 
         # url_name = 'r{}f{}x{}'.format(n_resblocks, n_feats, scale)
         # if url_name in url:
@@ -38,10 +37,10 @@ class EDSR(nn.Module):
         # else:
         #     self.url = None
 
-        kernel_size = hparams.kernel_size
+        kernel_size = self.hparams.kernel_size
 
         # define head module
-        m_head = [SpatialPreservedConv(hparams.n_colors, n_feats, kernel_size)]
+        m_head = [SpatialPreservedConv(self.hparams.n_colors, n_feats, kernel_size)]
 
         # define body module
         # ResBlock(n_feats, kernel_size, act=nn.ReLU(True), res_scale=hparams.res_scale)
@@ -53,12 +52,13 @@ class EDSR(nn.Module):
         self.head = nn.Sequential(*m_head)
         self.body = nn.Sequential(*m_body)
 
-        if hparams.upsampler:
-            self.out_dim = hparams.n_colors
+        print(f"{self.hparams.upsampler}")
+        if self.hparams.upsampler:
+            self.out_dim = self.hparams.n_colors
             # define tail module
             m_tail = [
                 hydra.utils.instantiate(self.hparams.upsampler),
-                SpatialPreservedConv(n_feats, hparams.n_colors, kernel_size)
+                SpatialPreservedConv(n_feats, self.hparams.n_colors, kernel_size)
             ]
             self.tail = nn.Sequential(*m_tail)
         else:
@@ -70,10 +70,10 @@ class EDSR(nn.Module):
         res = self.body(x)
         res += x
 
-        if self.args.no_upsampling:
-            x = res
-        else:
+        if self.hparams.upsampler:
             x = self.tail(res)
+        else:
+            x = res
         return x
 
     def load_state_dict(self, state_dict, strict=True):

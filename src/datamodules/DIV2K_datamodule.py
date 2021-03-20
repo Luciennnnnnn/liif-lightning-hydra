@@ -4,6 +4,13 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
+from torchvision.transforms import RandomHorizontalFlip, RandomVerticalFlip
+
+from ..datasets.image_dataset import DIV2KDataset
+from ..datasets.sr_dataset import ContinuesSRDataset
+from ..datasets.implicit_image_dataset import ImplicitImageDataset
+
+from ..utils.transforms import RandomDFlip
 
 class DIV2KDataModule(LightningDataModule):
     """
@@ -17,18 +24,19 @@ class DIV2KDataModule(LightningDataModule):
 
         self.data_dir = kwargs["data_dir"]
         self.batch_size = kwargs["batch_size"]
-        self.train_val_test_split = kwargs["train_val_test_split"]
         self.num_workers = kwargs["num_workers"]
         self.pin_memory = kwargs["pin_memory"]
+
         self.inp_size = kwargs["inp_size"]
         self.scale_range = kwargs["scale_range"]
+        self.sample_q = kwargs["sample_q"]
 
         self.transforms = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
         )
 
         # self.dims is returned when you call datamodule.size()
-        self.dims = (1, 28, 28)
+        # self.dims = (1, 28, 28)
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
@@ -50,14 +58,14 @@ class DIV2KDataModule(LightningDataModule):
         augument_transforms = transforms.Compose([RandomHorizontalFlip(p=0.5), RandomVerticalFlip(p=0.5), RandomDFlip(p=0.5)])
 
         # train dataset
-        trainset = DIV2KDataset(root: self.data_dir, train: bool = True, transform: transforms.Compose([self.transforms, augument_transforms]))
-        trainset = ContinuesSRDataset(dataset: trainset, inp_size: self.inp_size, scale_range: self.scale_range)
-        trainset = ImplicitImageDataset(dataset: trainset)
+        trainset = DIV2KDataset(root=self.data_dir, train= True, transform=transforms.Compose([self.transforms, augument_transforms]))
+        trainset = ContinuesSRDataset(dataset=trainset, inp_size=self.inp_size, scale_range=self.scale_range)
+        trainset = ImplicitImageDataset(dataset=trainset, sample_q=self.sample_q)
 
         # validation dataset
-        valset = DIV2KDataset(root: self.data_dir, train: bool = False, transform: transforms.Compose([self.transforms, augument_transforms]))
-        valset = ContinuesSRDataset(dataset: valset, inp_size: self.inp_size, scale_range: self.scale_range)
-        valset = ImplicitImageDataset(dataset: valset)
+        valset = DIV2KDataset(root=self.data_dir, train=False, transform=self.transforms)
+        valset = ContinuesSRDataset(dataset=valset, inp_size=self.inp_size, scale_range=self.scale_range)
+        valset = ImplicitImageDataset(dataset=valset, sample_q=self.sample_q)
 
         self.data_train, self.data_val = trainset, valset
 

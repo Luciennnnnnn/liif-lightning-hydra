@@ -1,8 +1,13 @@
 import os
+import random
 from enum import Enum
 from typing import Callable, Optional, Tuple, Union
+from collections import Sequence
 from PIL import Image
+
 from torch.utils.data import Dataset
+from torchvision.transforms import transforms
+from torchvision.transforms.functional import InterpolationMode
 
 class SRDataset(Dataset):
     """Example dataset class for loading images from folder."""
@@ -31,14 +36,12 @@ class SRDataset(Dataset):
 class ContinuesSRDataset(Dataset):
     """Example dataset class for loading images from folder."""
 
-    def __init__(self, dataset: Dataset, inp_size, scale_range: Union(Union(int, float), Tuple[Union(int, float), Union(int, float)])):
-        self.transform = transform
-        self.target_transform = target_transform
+    def __init__(self, dataset: Dataset, inp_size, scale_range: Union[Union[int, float], Tuple[Union[int, float], Union[int, float]]]):
         self.dataset = dataset
 
-        if type(scale_range) == float or type(scale_range) == int:
+        if isinstance(scale_range, (int, float)):
             self.scale_range = (scale_range[0], scale_range[1])
-        else if type(scale_range) == Tuple:
+        elif isinstance(scale_range, tuple):
             assert(scale_range[0] <= scale_range[1])
             self.scale_range = scale_range
 
@@ -77,7 +80,7 @@ class ContinuesSRDataset(Dataset):
         
         hr = transforms.RandomCrop((h_hr, w_hr))(hr)
         lr = transforms.Resize((h_lr, w_lr), interpolation=InterpolationMode.BICUBIC)(hr)
-
+ 
         return lr, hr
 
     def __len__(self):

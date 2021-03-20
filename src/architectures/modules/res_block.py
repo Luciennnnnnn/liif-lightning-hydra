@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .conv import SpatialPreservedConv
 class ResBlock(nn.Module):
     """
         Res Block.
     """
     def __init__(
-        self, conv, n_feats, kernel_size,
+        self, n_feats, kernel_size,
         bias=True, bn=False, act=nn.ReLU(True), res_scale=1):
 
         super(ResBlock, self).__init__()
