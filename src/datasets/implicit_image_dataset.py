@@ -33,12 +33,13 @@ class ImplicitImageDataset(Dataset):
             hr_coord = hr_coord[sample_lst]
             hr_rgb = hr_rgb[sample_lst]
 
-        gt_size = torch.ones_like(hr_coord)
-        gt_size[:, 0] = hr.shape[-2]
-        gt_size[:, 1] = hr.shape[-1]
-    
+        gt_size = torch.ones(2).int()
+        gt_size[0] = hr.shape[-2]
+        gt_size[1] = hr.shape[-1]
+
         return {
                 'inp': lr,
+                # 'hr': hr,
                 'coord': hr_coord,
                 'gt': hr_rgb,
                 'gt_size': gt_size

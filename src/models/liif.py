@@ -1,14 +1,20 @@
+import os
 from typing import Any, Dict, List, Sequence, Tuple, Union
 
 import hydra
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
+from torchvision.transforms import transforms
+
 from pytorch_lightning.metrics.classification import Accuracy
 from torch.optim import Optimizer
 
+from skimage.metrics import peak_signal_noise_ratio
+
 from src.architectures.simple_dense_net import SimpleDenseNet
 from ..utils.functional import make_coord
+from ..super_resolution import super_resolution
 
 class LIIF(pl.LightningModule):
     """
@@ -72,9 +78,8 @@ class LIIF(pl.LightningModule):
 
         return feature, f_coordinate
 
-    def forward(self, x, coord, gt_size) -> torch.Tensor:
-        feature = self.encoder(x) # N×C×H×W
-
+    def forward(self, feature, coord, gt_size) -> torch.Tensor:
+    
         if self.hparams.feat_unfold:
             feature = F.unfold(feature, 3, padding=1).view(
                 feature.shape[0], feature.shape[1] * 9, feature.shape[2], feature.shape[3])
@@ -83,7 +88,7 @@ class LIIF(pl.LightningModule):
         rx = 2 / feature.shape[-2] / 2
         ry = 2 / feature.shape[-1] / 2
 
-        feat_coord = make_coord(feature.shape[-2:], flatten=False).cuda() \
+        feat_coord = make_coord(feature.shape[-2:], flatten=False).type_as(feature) \
             .permute(2, 0, 1) \
             .unsqueeze(0).expand(feature.shape[0], 2, *feature.shape[-2:]) # N×2×H×W
             
@@ -116,7 +121,7 @@ class LIIF(pl.LightningModule):
                 inp = torch.cat([q_feat, relative_offset], dim=-1)
 
                 if self.hparams.cell_decode:
-                    cell = 2 / gt_size
+                    cell = 2 / (gt_size.unsqueeze(1).repeat(1, coord.shape[1], 1))
 
                     cell[:, :, 0] *= feature.shape[-2]
                     cell[:, :, 1] *= feature.shape[-1]
@@ -140,7 +145,8 @@ class LIIF(pl.LightningModule):
 
     def step(self, batch) -> Dict[str, torch.Tensor]:
         x, coord, gt, gt_size = batch['inp'], batch['coord'], batch['gt'], batch['gt_size']
-        pred = self.forward(x, coord, gt_size)
+        feature = self.encoder(x) # N×C×H×W
+        pred = self.forward(feature, coord, gt_size)
         loss = self.criterion(pred, gt)
         return loss, pred, gt
 
@@ -157,16 +163,32 @@ class LIIF(pl.LightningModule):
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, torch.Tensor]:
         loss, preds, targets = self.step(batch)
-
         # log val metrics to your loggers!
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+
+        lr = batch['inp'][0]
+        gt_size = batch['gt_size'][0]
+        sr = super_resolution(model=self, x=lr.unsqueeze(0), target_resolution=gt_size, bsize=30000)[0]
+
+        sr = (sr * 0.5 + 0.5).clamp(0, 1).view(gt_size[0].item(), gt_size[1].item(), 3).permute(2, 0, 1)
+        lr = (lr * 0.5 + 0.5).clamp(0, 1)
+
+        tensorboard = self.logger.experiment[0]
+        
+        tensorboard.add_image("val/lr", lr, global_step=self.trainer.global_step)
+        tensorboard.add_image("val/sr", sr, global_step=self.trainer.global_step)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in validation_epoch_end() below
         return {"loss": loss, "preds": preds, "targets": targets}
 
-    def test_step(self, batch: Any, batch_idx: int) -> Dict[str, torch.Tensor]:
-        loss, preds, targets = self.step(batch)
+    def test_step(self, batch: Any, batch_idx: int, dataset_idx: int) -> Dict[str, torch.Tensor]:
+        lr = batch['inp'][0]
+        gt = batch['gt']
+        gt_size = batch['gt_size'][0]
+        preds = super_resolution(model=self, x=lr.unsqueeze(0), target_resolution=gt_size, bsize=30000)
+
+        loss = self.criterion(gt, preds)
 
         # log test metrics to your loggers!
         self.log("test/loss", loss, on_step=False, on_epoch=True)
@@ -200,4 +222,7 @@ class LIIF(pl.LightningModule):
         optim = hydra.utils.instantiate(
             self.hparams.optimizer, params=self.parameters()
         )
-        return optim
+        lr_scheduler = hydra.utils.instantiate(
+            self.hparams.lr_scheduler, optim
+        )
+        return [optim], [lr_scheduler]

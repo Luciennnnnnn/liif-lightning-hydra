@@ -1,6 +1,12 @@
-_target_: src.datamodules.DIV2K_datamodule.DIV2KDataModule
+_target_: src.datamodules.DIV2K_datamodule.CelebAHQDataset
 
-data_dir: ${data_dir}/DIV2K  # data_dir is specified in config.yaml
+data_dir: ${data_dir}/CelebA-HQ  # data_dir is specified in config.yaml
+
+lr_size: 32
+hr_size: 256
+
+split_file: ${data_dir}/split.json
+first_k: 100
 
 train_dataloader_params:
   batch_size: 16
@@ -20,7 +26,6 @@ test_dataloader_params:
   pin_memory: False
   shuffle: False
 
-inp_size: 48
-scale_range: [1, 4]
+scale_range: [32, 256]
 
-sample_q: 2304 # 48 * 48
+sample_q: 1024

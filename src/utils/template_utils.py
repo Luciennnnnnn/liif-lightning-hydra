@@ -3,10 +3,8 @@ import warnings
 from typing import List, Sequence
 
 import pytorch_lightning as pl
-import wandb
 from hydra.utils import log
 from omegaconf import DictConfig, OmegaConf
-from pytorch_lightning.loggers.wandb import WandbLogger
 from rich import print
 from rich.syntax import Syntax
 from rich.tree import Tree
@@ -150,7 +148,7 @@ def log_hyperparameters(
     # choose which parts of hydra config will be saved to loggers
     hparams["trainer"] = config["trainer"]
     hparams["model"] = config["model"]
-    hparams["optimizer"] = config["optimizer"]
+    hparams["optimizer"] = config["model"]["optimizer"]
     hparams["datamodule"] = config["datamodule"]
     if "callbacks" in config:
         hparams["callbacks"] = config["callbacks"]
@@ -202,6 +200,6 @@ def finish(
     """
 
     # without this sweeps with wandb logger might crash!
-    for lg in logger:
-        if isinstance(lg, WandbLogger):
-            wandb.finish()
+    # for lg in logger:
+    #     if isinstance(lg, WandbLogger):
+    #         wandb.finish()

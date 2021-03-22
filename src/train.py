@@ -37,7 +37,7 @@ def train(config: DictConfig) -> Optional[float]:
     # Init Lightning model
     log.info(f"Instantiating model <{config.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(
-        config.model, optimizer=config.optimizer, _recursive_=False
+        config.model, _recursive_=False
     )
 
     # Init Lightning callbacks
@@ -59,7 +59,7 @@ def train(config: DictConfig) -> Optional[float]:
     # Init Lightning trainer
     log.info(f"Instantiating trainer <{config.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(
-        config.trainer, callbacks=callbacks, logger=logger
+        config.trainer, callbacks=callbacks, logger=logger,  _convert_="partial"
     )
 
     # Send some parameters from config to all lightning loggers

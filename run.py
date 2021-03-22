@@ -10,6 +10,7 @@ def main(config: DictConfig):
     # Learn more here: https://github.com/facebookresearch/hydra/issues/934
     import dotenv
     from src.train import train
+    from src.test import test
     from src.utils import template_utils
 
     # load environment variables from `.env` file if it exists
@@ -29,7 +30,10 @@ def main(config: DictConfig):
         template_utils.print_config(config, resolve=True)
 
     # Train model
-    return train(config)
+    if config.get("train"):
+        return train(config)
+    else:
+        return test(config)
 
 
 if __name__ == "__main__":

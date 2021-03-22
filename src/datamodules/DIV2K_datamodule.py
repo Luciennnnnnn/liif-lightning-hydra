@@ -6,7 +6,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 from torchvision.transforms import RandomHorizontalFlip, RandomVerticalFlip
 
-from ..datasets.image_dataset import DIV2KDataset
+from ..datasets.image_dataset import DIV2KDataset, DIV2KDatasetPaired
 from ..datasets.sr_dataset import ContinuesSRDataset
 from ..datasets.implicit_image_dataset import ImplicitImageDataset
 
@@ -23,9 +23,14 @@ class DIV2KDataModule(LightningDataModule):
         super().__init__()
 
         self.data_dir = kwargs["data_dir"]
-        self.batch_size = kwargs["batch_size"]
-        self.num_workers = kwargs["num_workers"]
-        self.pin_memory = kwargs["pin_memory"]
+
+        self.train_dataloader_params = kwargs["train_dataloader_params"]
+        self.val_dataloader_params = kwargs["val_dataloader_params"]
+        self.test_dataloader_params = kwargs["test_dataloader_params"]
+
+        # self.batch_size = kwargs["batch_size"]
+        # self.num_workers = kwargs["num_workers"]
+        # self.pin_memory = kwargs["pin_memory"]
 
         self.inp_size = kwargs["inp_size"]
         self.scale_range = kwargs["scale_range"]
@@ -40,7 +45,6 @@ class DIV2KDataModule(LightningDataModule):
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
-        self.data_test: Optional[Dataset] = None
 
     def prepare_data(self):
         """Download data if needed. This method is called only from a single GPU.
@@ -72,26 +76,52 @@ class DIV2KDataModule(LightningDataModule):
     def train_dataloader(self):
         return DataLoader(
             dataset=self.data_train,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            shuffle=True,
+            batch_size=self.train_dataloader_params.batch_size,
+            num_workers=self.train_dataloader_params.num_workers,
+            pin_memory=self.train_dataloader_params.pin_memory,
+            shuffle=self.train_dataloader_params.shuffle,
         )
 
     def val_dataloader(self):
         return DataLoader(
             dataset=self.data_val,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            shuffle=False,
+            batch_size=self.val_dataloader_params.batch_size,
+            num_workers=self.val_dataloader_params.num_workers,
+            pin_memory=self.val_dataloader_params.pin_memory,
+            shuffle=self.val_dataloader_params.shuffle,
         )
 
-    # def test_dataloader(self):
-    #     return DataLoader(
-    #         dataset=self.data_test,
-    #         batch_size=self.batch_size,
-    #         num_workers=self.num_workers,
-    #         pin_memory=self.pin_memory,
-    #         shuffle=False,
-    #     )
+    def test_dataloader(self):
+        testset_2 = DIV2KDatasetPaired(root=self.data_dir, scale=2, shared_transform=self.transforms)
+        testset_2 = ImplicitImageDataset(dataset=testset_2)
+
+        testset_3 = DIV2KDatasetPaired(root=self.data_dir, scale=3, shared_transform=self.transforms)
+        testset_3 = ImplicitImageDataset(dataset=testset_3)
+
+        testset_4 = DIV2KDatasetPaired(root=self.data_dir, scale=4, shared_transform=self.transforms)
+        testset_4 = ImplicitImageDataset(dataset=testset_4)
+
+        test_dataloader_2 = DataLoader(
+            dataset=testset_2,
+            batch_size=self.test_dataloader_params.batch_size,
+            num_workers=self.test_dataloader_params.num_workers,
+            pin_memory=self.test_dataloader_params.pin_memory,
+            shuffle=self.test_dataloader_params.shuffle,
+        )
+
+        test_dataloader_3 = DataLoader(
+            dataset=testset_3,
+            batch_size=self.test_dataloader_params.batch_size,
+            num_workers=self.test_dataloader_params.num_workers,
+            pin_memory=self.test_dataloader_params.pin_memory,
+            shuffle=self.test_dataloader_params.shuffle,
+        )
+
+        test_dataloader_4 = DataLoader(
+            dataset=testset_4,
+            batch_size=self.test_dataloader_params.batch_size,
+            num_workers=self.test_dataloader_params.num_workers,
+            pin_memory=self.test_dataloader_params.pin_memory,
+            shuffle=self.test_dataloader_params.shuffle,
+        )
+        return [test_dataloader_2, test_dataloader_3, test_dataloader_4]

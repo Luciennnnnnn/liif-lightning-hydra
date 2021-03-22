@@ -4,10 +4,9 @@
 defaults:
     - trainer: default_trainer.yaml
     - model: liif.yaml
-    - optimizer: adam.yaml
     - datamodule: DIV2K_datamodule.yaml
     - callbacks: default_callbacks.yaml  # set this to null if you don't want to use callbacks
-    - logger: null  # set logger here or use command line (e.g. `python run.py logger=wandb`)
+    - logger: tensorboard.yaml  # set logger here or use command line (e.g. `python run.py logger=wandb`)
 
     # enable color logging
     # - override hydra/hydra_logging: colorlog
@@ -26,13 +25,16 @@ results_dir: /gdata/luoxin/lightning-hydra-template
 # path to folder with data
 data_dir: ${results_dir}/datasets/
 
-
 # use `python run.py debug=true` for easy debugging!
 # this will run 1 train, val and test loop with only 1 batch
 # equivalent to running `python run.py trainer.fast_dev_run=true`
 # (this is placed here just for easier access from command line)
 debug: False
 
+# train or test
+train: true
+
+CKPT_PATH: ${results_dir}/logs/runs/2021-03-21/05-01-09/checkpoints/last.ckpt
 
 # pretty print config at the start of the run using Rich library
 print_config: True
@@ -45,6 +47,7 @@ disable_warnings: True
 # disable lightning logs if they annoy you
 disable_lightning_logs: False
 
+# seed: 10
 
 hydra:
     # output paths for hydra logs
