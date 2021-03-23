@@ -34,9 +34,6 @@ class LogPSNRToTensorBoard(Callback):
         pass
 
     def on_test_batch_end(self, trainer, pl_module: pl.LightningModule, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int):
-        logger = get_tensorboard_logger(trainer=trainer)
-        experiment = logger.experiment
-
         lr = batch['inp'][0]
         gt = batch['gt']
         gt_size = batch['gt_size'][0]
@@ -59,3 +56,18 @@ class LogPSNRToTensorBoard(Callback):
 
         # log test metrics to your loggers!
         pl_module.log("test/psnr", psnr, on_step=False, on_epoch=True)
+
+    def on_validation_batch_end(self, trainer, pl_module: pl.LightningModule, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int):
+        if batch_idx % 3 == 0:
+            logger = get_tensorboard_logger(trainer=trainer)
+            tensorboard = logger.experiment
+
+            lr = batch['inp'][0]
+            gt_size = batch['gt_size'][0]
+            sr = outputs['sr']
+
+            sr = (sr * 0.5 + 0.5).clamp(0, 1).view(gt_size[0].item(), gt_size[1].item(), 3).permute(2, 0, 1)
+            lr = (lr * 0.5 + 0.5).clamp(0, 1)
+
+            tensorboard.add_image("val/lr", lr, global_step=trainer.global_step)
+            tensorboard.add_image("val/sr", sr, global_step=trainer.global_step)

@@ -168,17 +168,9 @@ class LIIF(pl.LightningModule):
         gt_size = batch['gt_size'][0]
         sr = super_resolution(model=self, x=lr.unsqueeze(0), target_resolution=gt_size, bsize=30000)[0]
 
-        sr = (sr * 0.5 + 0.5).clamp(0, 1).view(gt_size[0].item(), gt_size[1].item(), 3).permute(2, 0, 1)
-        lr = (lr * 0.5 + 0.5).clamp(0, 1)
-
-        tensorboard = self.logger.experiment[0]
-        
-        tensorboard.add_image("val/lr", lr, global_step=self.trainer.global_step)
-        tensorboard.add_image("val/sr", sr, global_step=self.trainer.global_step)
-
         # we can return here dict with any tensors
         # and then read it in some callback or in validation_epoch_end() below
-        return {"loss": loss, "preds": preds, "targets": targets}
+        return {"loss": loss, "preds": preds, "targets": targets, "sr": sr}
 
     def test_step(self, batch: Any, batch_idx: int, dataset_idx: int) -> Dict[str, torch.Tensor]:
         lr = batch['inp'][0]
