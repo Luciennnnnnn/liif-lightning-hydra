@@ -10,8 +10,6 @@ from torchvision.transforms import transforms
 from pytorch_lightning.metrics.classification import Accuracy
 from torch.optim import Optimizer
 
-from skimage.metrics import peak_signal_noise_ratio
-
 from src.architectures.simple_dense_net import SimpleDenseNet
 from ..utils.functional import make_coord
 from ..super_resolution import super_resolution
@@ -193,7 +191,7 @@ class LIIF(pl.LightningModule):
         # log test metrics to your loggers!
         self.log("test/loss", loss, on_step=False, on_epoch=True)
 
-        return loss
+        return {"loss": loss, "preds": preds}
 
     # [OPTIONAL METHOD]
     def training_epoch_end(self, outputs: List[Any]) -> None:
