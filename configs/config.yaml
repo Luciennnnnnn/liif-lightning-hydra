@@ -19,8 +19,7 @@ defaults:
 # read more here: https://hydra.cc/docs/next/tutorials/basic/running_your_app/working_directory
 work_dir: ${hydra:runtime.cwd}
 
-results_dir: /gdata/luoxin/lightning-hydra-template
-# results_dir: ${work_dir}
+results_dir: ${work_dir} # or other dir different from work_dir
 
 # path to folder with data
 data_dir: ${results_dir}/datasets
@@ -34,7 +33,7 @@ debug: False
 # train or test
 train: true
 
-CKPT_PATH: ${results_dir}/logs/runs/2021-03-21/05-01-09/checkpoints/last.ckpt
+CKPT_PATH: null # your trained model path
 
 # pretty print config at the start of the run using Rich library
 print_config: True
