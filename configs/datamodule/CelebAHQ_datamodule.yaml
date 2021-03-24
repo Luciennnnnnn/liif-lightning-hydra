@@ -8,14 +8,16 @@ hr_size: 256
 split_file: ${data_dir}/split.json
 first_k: 100
 
+batch_size: 16
+
 train_dataloader_params:
-  batch_size: 16
+  batch_size: ${..batch_size}
   num_workers: 0
   pin_memory: False
   shuffle: False
 
 val_dataloader_params:
-  batch_size: 16
+  batch_size: ${..batch_size}
   num_workers: 0
   pin_memory: False
   shuffle: False

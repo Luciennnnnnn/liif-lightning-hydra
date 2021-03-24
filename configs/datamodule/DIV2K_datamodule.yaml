@@ -2,14 +2,16 @@ _target_: src.datamodules.DIV2K_datamodule.DIV2KDataModule
 
 data_dir: ${data_dir}/DIV2K  # data_dir is specified in config.yaml
 
+batch_size: 16
+
 train_dataloader_params:
-  batch_size: 16
+  batch_size: ${..batch_size}
   num_workers: 0
   pin_memory: False
   shuffle: False
 
 val_dataloader_params:
-  batch_size: 16
+  batch_size: ${..batch_size}
   num_workers: 0
   pin_memory: False
   shuffle: False
