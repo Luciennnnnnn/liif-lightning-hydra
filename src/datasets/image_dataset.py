@@ -110,26 +110,37 @@ class CelebAHQDataset(Dataset):
         shared_transform:
     """
 
-    def __init__(self, root: str, lr_size, hr_size, split_file=None, first_k=None, shared_transform: Optional[Callable] = None):
+    def __init__(self, root: str, train: bool, lr_size, hr_size, split_file=None, first_k=None, 
+                transform: Optional[Callable] = None, shared_transform: Optional[Callable] = None):
+        self.transform = transform
         self.shared_transform = shared_transform
 
         input_dir = os.path.join(root, str(lr_size))
         target_dir = os.path.join(root, str(hr_size))
 
         if split_file:
+            import json
             with open(split_file, 'r') as f:
-                filenames = json.load(f)[split_key]            
+                split_scheme = json.load(f)
 
-        self.dataset_1 = ImageFolderDataset(root=input_dir, is_sort=False, filenames=filenames, first_k=first_k)
-        self.dataset_2 = ImageFolderDataset(root=target_dir, is_sort=False, filenames=filenames, first_k=first_k)
+        if train:
+            split_key = "train"
+        else:
+            split_key = "val"
+
+        self.dataset_1 = ImageFolderDataset(root=input_dir, is_sort=False, filenames=split_scheme[split_key], first_k=first_k)
+        self.dataset_2 = ImageFolderDataset(root=target_dir, is_sort=False, filenames=split_scheme[split_key], first_k=first_k)
 
     def __getitem__(self, idx):
         _input = self.dataset_1[idx]
         target = self.dataset_2[idx]
         
+        if self.transform:
+            _input = self.transform(_input)
+            target = self.transform(target)
+
         if self.shared_transform:
-            _input = self.shared_transform(_input)
-            target = self.shared_transform(target)
+            _input, target = self.shared_transform([_input, target])
         return _input, target
 
     def __len__(self):

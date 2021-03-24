@@ -85,3 +85,24 @@ class ContinuesSRDataset(Dataset):
 
     def __len__(self):
         return len(self.dataset)
+
+
+class SRImplicitUniformVaried(Dataset):
+
+    def __init__(self, dataset, size_min, size_max=None):
+        self.dataset = dataset
+        self.size_min = size_min
+        if size_max is None:
+            size_max = size_min
+        self.size_max = size_max
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        lr, hr = self.dataset[idx]
+        p = idx / (len(self.dataset) - 1)
+        w_hr = round(self.size_min + (self.size_max - self.size_min) * p)
+        hr = transforms.Resize((w_hr, w_hr), interpolation=InterpolationMode.BICUBIC)(hr)
+        
+        return lr, hr

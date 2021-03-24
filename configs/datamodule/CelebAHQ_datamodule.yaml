@@ -1,11 +1,11 @@
-_target_: src.datamodules.DIV2K_datamodule.CelebAHQDataset
+_target_: src.datamodules.CelebAHQ_datamodule.CelebAHQDataModule
 
 data_dir: ${data_dir}/CelebA-HQ  # data_dir is specified in config.yaml
 
 lr_size: 32
 hr_size: 256
 
-split_file: ${data_dir}/split.json
+split_file: ${.data_dir}/split.json
 first_k: 100
 
 batch_size: 16

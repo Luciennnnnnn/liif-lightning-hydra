@@ -23,7 +23,7 @@ results_dir: /gdata/luoxin/lightning-hydra-template
 # results_dir: ${work_dir}
 
 # path to folder with data
-data_dir: ${results_dir}/datasets/
+data_dir: ${results_dir}/datasets
 
 # use `python run.py debug=true` for easy debugging!
 # this will run 1 train, val and test loop with only 1 batch

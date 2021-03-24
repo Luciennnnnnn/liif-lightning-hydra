@@ -1,0 +1,18 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py +experiment=train_on_CelebAHQ
+
+defaults:
+    - override /trainer: default_trainer.yaml           # choose trainer from 'configs/trainer/' folder or set to null
+    - override /model: liif.yaml                        # choose model from 'configs/model/' folder or set to null
+    - override /datamodule: DIV2K_datamodule.yaml    # choose datamodule from 'configs/datamodule/' folder or set to null
+
+trainer:
+    max_epochs: 1000
+
+model:
+    lr_scheduler:
+        _target_: torch.optim.lr_scheduler.MultiStepLR
+        milestones: [200, 400, 600, 800]
+        gamma: 0.5
