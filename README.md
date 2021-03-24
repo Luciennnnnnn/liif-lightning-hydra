@@ -11,7 +11,7 @@
 
 ## Description
 An reimplement of [Learning Continuous Image Representation with Local Implicit Image Function
-](https://arxiv.org/abs/2012.09161) using lightning and hydra.
+](https://arxiv.org/abs/2012.09161) using lightning and hydra based on [this](https://github.com/hobogalaxy/lightning-hydra-template) awesome template.
 
 ## How to run
 Install dependencies
