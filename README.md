@@ -28,24 +28,35 @@ conda activate your_env_name
 pip install -r requirements.txt
 ```
 
-Train model with default configuration
+Train model with default configuration (train on DIV2K with visible GPUs)
 ```yaml
 python run.py
+
+# specify used GPUs
+python run.py trainer.gpus=[0, 2, 5]
+
+# use cpu
+python run.py trainer.gpus=0
 ```
 
 Train model with chosen experiment configuration
 ```yaml
 # experiment configurations are placed in folder `configs/experiment/`
 python run.py +experiment=exp_example_simple
+
+# train on CelebAHQ
+python run.py +experiment=train_on_CelebAHQ_32_256
+python run.py +experiment=train_on_CelebAHQ_64_128
+```
+
+Test model
+```yaml
+# test pretrained model on DIV2K
+python run.py train=false
 ```
 
 You can override any parameter from command line like this
 ```yaml
 python run.py trainer.max_epochs=20 optimizer.lr=0.0005
-```
-
-Train on GPU
-```yaml
-python run.py trainer.gpus=1
 ```
 <br>
