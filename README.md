@@ -17,8 +17,8 @@ An reimplement of [Learning Continuous Image Representation with Local Implicit 
 Install dependencies
 ```yaml
 # clone project
-git clone https://github.com/YourGithubName/your-repo-name
-cd your-repo-name
+git clone git@github.com:LuoXin-s/liif-lightning-hydra.git
+cd liif-lightning-hydra
 
 # [OPTIONAL] create conda environment
 conda env create -f conda_env_gpu.yaml -n your_env_name
