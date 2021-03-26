@@ -12,7 +12,7 @@ import hydra
 from typing import List, Optional
 
 # src imports
-from src.utils import template_utils
+from .utils import template_utils
 from .models.liif import LIIF
 
 
@@ -27,7 +27,7 @@ def test(config: DictConfig) -> Optional[float]:
     # you can also pass some parameter explicitly to override it
 
     # load Lightning model
-    log.info(f"Loading model from<{config.CKPT_PATH}>")
+    log.info(f"Loading model from <{config.CKPT_PATH}>")
     trained_model = LIIF.load_from_checkpoint(checkpoint_path=config.CKPT_PATH)
 
     # print model hyperparameters

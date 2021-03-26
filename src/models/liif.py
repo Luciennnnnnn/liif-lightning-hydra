@@ -10,7 +10,9 @@ from torchvision.transforms import transforms
 from pytorch_lightning.metrics.classification import Accuracy
 from torch.optim import Optimizer
 
-from src.architectures.simple_dense_net import SimpleDenseNet
+from skimage.metrics import peak_signal_noise_ratio
+
+from ..architectures.simple_dense_net import SimpleDenseNet
 from ..utils.functional import make_coord
 from ..super_resolution import super_resolution
 
@@ -119,7 +121,7 @@ class LIIF(pl.LightningModule):
                 inp = torch.cat([q_feat, relative_offset], dim=-1)
 
                 if self.hparams.cell_decode:
-                    cell = 2 / (gt_size.unsqueeze(1).repeat(1, coord.shape[1], 1))
+                    cell = (2 / (gt_size.unsqueeze(1).repeat(1, coord.shape[1], 1))).type_as(inp)
 
                     cell[:, :, 0] *= feature.shape[-2]
                     cell[:, :, 1] *= feature.shape[-1]
@@ -157,7 +159,8 @@ class LIIF(pl.LightningModule):
         # we can return here dict with any tensors
         # and then read it in some callback or in training_epoch_end() below
         # remember to always return loss from training_step, or else backpropagation will fail!
-        return {"loss": loss, "preds": preds, "targets": targets}
+        # return {"loss": loss, "preds": preds, "targets": targets}
+        return {"loss": loss}
 
     def validation_step(self, batch: Any, batch_idx: int) -> Dict[str, torch.Tensor]:
         loss, preds, targets = self.step(batch)
@@ -166,24 +169,42 @@ class LIIF(pl.LightningModule):
 
         lr = batch['inp'][0]
         gt_size = batch['gt_size'][0]
-        sr = super_resolution(model=self, x=lr.unsqueeze(0), target_resolution=gt_size, bsize=30000)[0]
+        sr = super_resolution(model=self, x=lr.unsqueeze(0), target_resolution=gt_size.cpu(), bsize=30000)[0]
 
         # we can return here dict with any tensors
         # and then read it in some callback or in validation_epoch_end() below
-        return {"loss": loss, "preds": preds, "targets": targets, "sr": sr}
+        # return {"loss": loss, "preds": preds, "targets": targets, "sr": sr}
+        return {"loss": loss, "sr": sr}
 
     def test_step(self, batch: Any, batch_idx: int, dataset_idx: int) -> Dict[str, torch.Tensor]:
         lr = batch['inp'][0]
         gt = batch['gt']
         gt_size = batch['gt_size'][0]
-        preds = super_resolution(model=self, x=lr.unsqueeze(0), target_resolution=gt_size, bsize=30000)
+        preds = super_resolution(model=self, x=lr.unsqueeze(0), target_resolution=gt_size.cpu(), bsize=30000)
 
         loss = self.criterion(gt, preds)
+
+        pred = preds[0]
+        pred = (pred * 0.5 + 0.5).clamp(0, 1).view(gt_size[0].item(), gt_size[1].item(), 3).permute(2, 0, 1).cpu()
+        
+        gt = gt[0]
+        gt = (gt * 0.5 + 0.5).clamp(0, 1).view(gt_size[0].item(), gt_size[1].item(), 3).permute(2, 0, 1).cpu()
+
+        shave = 6 + 2 + dataset_idx
+        psnr = peak_signal_noise_ratio(gt[..., shave:-shave, shave:-shave].numpy(), pred[..., shave:-shave, shave:-shave].numpy(), data_range=1)
+
+        if not os.path.isdir(os.path.join("results", "X" + str(dataset_idx + 2))):
+            os.makedirs(os.path.join("results", "X" + str(dataset_idx + 2)))
+
+        transforms.ToPILImage()(pred).save(os.path.join("results", "X" + str(dataset_idx + 2), str(batch_idx) + ".png"))
+
+        # log test metrics to your loggers!
+        self.log("test/psnr", psnr, on_step=False, on_epoch=True)
 
         # log test metrics to your loggers!
         self.log("test/loss", loss, on_step=False, on_epoch=True)
 
-        return {"loss": loss, "preds": preds}
+        return {"loss": loss}
 
     # [OPTIONAL METHOD]
     def training_epoch_end(self, outputs: List[Any]) -> None:

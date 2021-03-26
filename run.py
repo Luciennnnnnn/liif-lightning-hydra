@@ -9,6 +9,7 @@ def main(config: DictConfig):
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Learn more here: https://github.com/facebookresearch/hydra/issues/934
     import dotenv
+    import torch
     from src.train import train
     from src.test import test
     from src.utils import template_utils
@@ -28,7 +29,6 @@ def main(config: DictConfig):
     if config.get("print_config"):
         log.info(f"Pretty printing config with Rich! <{config.print_config=}>")
         template_utils.print_config(config, resolve=True)
-
     # Train model
     if config.get("train"):
         return train(config)

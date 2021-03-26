@@ -19,7 +19,7 @@ defaults:
 # read more here: https://hydra.cc/docs/next/tutorials/basic/running_your_app/working_directory
 work_dir: ${hydra:runtime.cwd}
 
-results_dir: ${work_dir} # or other dir different from work_dir
+results_dir: /gdata/luoxin/lightning-hydra-template # or other dir different from work_dir
 
 # path to folder with data
 data_dir: ${results_dir}/datasets
@@ -33,7 +33,7 @@ debug: False
 # train or test
 train: true
 
-CKPT_PATH: null # your trained model path
+CKPT_PATH: ${results_dir}/logs/runs/2021-03-24/02-58-29/checkpoints/epoch=081.ckpt # your trained model path
 
 # pretty print config at the start of the run using Rich library
 print_config: True
@@ -64,3 +64,6 @@ hydra:
             # https://github.com/wandb/client/issues/1314
             # this env var fixes that
             WANDB_START_METHOD: thread
+
+python super_resolution.py +input=input.png +model=/gdata/luoxin/lightning-hydra-template/logs/runs/2021-03-24/02-58-29/checkpoints/epoch=081.ckpt \
++resolution=[1020,678] +output=output.png
